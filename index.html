@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boundaries & Care | Educational Pixel Game</title>
+    <!-- Google Fonts: Retro Pixel Font & Clean Sans Backup -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pixel: {
+                            bg: '#2b1b36',
+                            card: '#3d254c',
+                            border: '#f3b0c3',
+                            yellow: '#f7d070',
+                            green: '#7bc17e',
+                            red: '#e06b6b',
+                            pink: '#e8a5c8',
+                            dark: '#1a1024',
+                            text: '#fceade'
+                        }
+                    },
+                    fontFamily: {
+                        pixel: ['"Press Start 2P"', 'monospace'],
+                        retro: ['"VT323"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Pixel Art Styling & Retro Effects */
+        body {
+            background-color: #1a1024;
+            color: #fceade;
+            font-family: 'VT323', monospace;
+            font-size: 1.35rem;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            user-select: none;
+        }
+
+        /* Scanline Overlay Effect */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 50;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* CRT Screen Curved Border Flicker */
+        .pixel-border {
+            border: 4px solid #f7d070;
+            box-shadow: 0 0 0 4px #2b1b36, 0 0 0 8px #f3b0c3;
+        }
+
+        .pixel-box {
+            background-color: #3d254c;
+            border: 4px solid #f3b0c3;
+            box-shadow: 4px 4px 0px #1a1024;
+        }
+
+        .pixel-btn {
+            background-color: #f7d070;
+            color: #1a1024;
+            border: 3px solid #1a1024;
+            box-shadow: 3px 3px 0px #e8a5c8;
+            transition: all 0.1s ease;
+            cursor: pointer;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 0.75rem;
+        }
+
+        .pixel-btn:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 5px 5px 0px #e8a5c8;
+            background-color: #fff2a8;
+        }
+
+        .pixel-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px #e8a5c8;
+        }
+
+        .pixel-btn-red {
+            background-color: #e06b6b;
+            color: #ffffff;
+        }
+        .pixel-btn-red:hover {
+            background-color: #ff8585;
+        }
+
+        .pixel-btn-green {
+            background-color: #7bc17e;
+            color: #1a1024;
+        }
+        .pixel-btn-green:hover {
+            background-color: #92e395;
+        }
+
+        /* Checkered Background Pattern */
+        .checkered-bg {
+            background-color: #2b1b36;
+            background-image: 
+                linear-gradient(45deg, #372044 25%, transparent 25%), 
+                linear-gradient(-45deg, #372044 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #372044 75%), 
+                linear-gradient(-45deg, transparent 75%, #372044 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+
+        /* Canvas scaling crispness */
+        canvas {
+            image-rendering: optimizeSpeed;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: -o-crisp-edges;
+            image-rendering: pixelated;
+            -ms-interpolation-mode: nearest-neighbor;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1024;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #f7d070;
+            border: 2px solid #1a1024;
+        }
+    </style>
+</head>
+<body class="checkered-bg min-h-screen flex flex-col justify-between p-2 md:p-6 relative text-pixel-text">
+
+    <!-- Optional CRT Scanline Overlay -->
+    <div id="scanlines" class="scanlines"></div>
+
+    <!-- Header / Safety Bar -->
+    <header class="w-full max-w-5xl mx-auto mb-4 z-10 flex flex-col sm:flex-row items-center justify-between gap-3 bg-pixel-card p-3 rounded-none border-4 border-pixel-border shadow-lg">
+        <div class="flex items-center gap-3">
+            <span class="text-2xl animate-pulse">🌸</span>
+            <div>
+                <h1 class="font-pixel text-xs sm:text-sm text-pixel-yellow tracking-wider">DR. MAYA'S CLINIC</h1>
+                <p class="text-xs sm:text-sm text-gray-300">Interactive Boundary & Consent Module</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <!-- Toggle Scanlines Button -->
+            <button onclick="toggleScanlines()" class="pixel-btn text-xs px-2 py-1 bg-purple-900 text-white" title="Toggle Scanline Effect">
+                📺 Retro FX
+            </button>
+            <!-- Quick Emergency Exit Button -->
+            <a href="https://www.google.com" target="_blank" class="pixel-btn pixel-btn-red text-xs px-3 py-1.5 flex items-center gap-1">
+                <span>⚠️</span> QUICK EXIT
+            </a>
+            <!-- Helpline Modal Trigger -->
+            <button onclick="openHelplineModal()" class="pixel-btn text-xs px-3 py-1.5 bg-blue-400">
+                🆘 HELPLINES
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game View Container -->
+    <main class="w-full max-w-5xl mx-auto flex-grow flex flex-col justify-center items-center z-10 my-2">
+        
+        <!-- Content Warning Overlay Modal -->
+        <div id="warning-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div class="pixel-box max-w-xl w-full p-6 text-center space-y-4 border-4 border-pixel-yellow">
+                <div class="text-4xl">⚠️</div>
+                <h2 class="font-pixel text-base text-pixel-yellow">CONTENT & SAFETY NOTICE</h2>
+                <p class="text-lg leading-relaxed">
+                    This educational game explores topics of <strong>active consent, interpersonal boundaries, bystander intervention, online privacy, and survivor support</strong>.
+                </p>
+                <p class="text-sm text-gray-300">
+                    All scenarios are framed constructively without graphic depictions of assault. Take breaks as needed. Immediate support resources are accessible at all times via the top bar.
+                </p>
+                <div class="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                    <button onclick="acceptWarning()" class="pixel-btn pixel-btn-green px-6 py-3">
+                        START LEARNING
+                    </button>
+                    <a href="https://www.rainn.org" target="_blank" class="pixel-btn px-6 py-3 bg-gray-200">
+                        LEAVE PAGE
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Helpline Information Modal -->
+        <div id="helpline-modal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <div class="pixel-box max-w-2xl w-full p-6 space-y-4 border-4 border-pixel-pink relative max-h-[90vh] overflow-y-auto">
+                <button onclick="closeHelplineModal()" class="absolute top-2 right-2 text-xl font-pixel px-2 bg-red-500 text-white border-2 border-black">X</button>
+                <h2 class="font-pixel text-sm text-pixel-yellow">GLOBAL SUPPORT RESOURCES</h2>
+                <div class="space-y-3 text-sm">
+                    <div class="p-3 bg-pixel-dark border-2 border-pixel-border">
+                        <strong class="text-pixel-yellow block">RAINN (National Sexual Assault Hotline - USA)</strong>
+                        <p>Free, confidential support available 24/7.</p>
+                        <p class="font-mono text-pixel-green mt-1">1-800-656-4673 | <a href="https://www.rainn.org" target="_blank" class="underline">online.rainn.org</a></p>
+                    </div>
+                    <div class="p-3 bg-pixel-dark border-2 border-pixel-border">
+                        <strong class="text-pixel-yellow block">Crisis Text Line</strong>
+                        <p>Text HOME to connect with a crisis counselor 24/7.</p>
+                        <p class="font-mono text-pixel-green mt-1">Text: 741741 (US & Canada) | 85258 (UK)</p>
+                    </div>
+                    <div class="p-3 bg-pixel-dark border-2 border-pixel-border">
+                        <strong class="text-pixel-yellow block">International Resources</strong>
+                        <p>Find global helplines and domestic support services nearby:</p>
+                        <a href="https://www.findahelpline.com" target="_blank" class="text-pixel-pink underline">findahelpline.com</a>
+                    </div>
+                </div>
+                <div class="text-center pt-2">
+                    <button onclick="closeHelplineModal()" class="pixel-btn px-6 py-2">CLOSE WINDOW</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Gameplay Window -->
+        <div class="w-full bg-pixel-card border-4 border-pixel-border p-4 sm:p-6 shadow-2xl relative flex flex-col gap-6">
+
+            <!-- Progress Bar & Module Tabs Header -->
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 border-b-2 border-purple-900 pb-3">
+                <!-- Module Badge -->
+                <div class="flex items-center gap-2">
+                    <span class="font-pixel text-xs text-pixel-yellow uppercase tracking-wide" id="module-title">MODULE 1: ACTIVE CONSENT</span>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full md:w-1/2 flex items-center gap-3">
+                    <span class="font-pixel text-[10px] text-gray-300">PROGRESS</span>
+                    <div class="w-full bg-pixel-dark h-5 border-2 border-pixel-border p-0.5 relative">
+                        <div id="progress-bar" class="bg-pixel-green h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <span id="score-display" class="font-pixel text-xs text-pixel-yellow whitespace-nowrap">0 PTS</span>
+                </div>
+            </div>
+
+            <!-- Interactive Stage Area (Doctor Avatar + Scene Dialogue) -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                
+                <!-- Pixel Art Doctor Portrait Section (Canvas) -->
+                <div class="md:col-span-4 flex flex-col items-center justify-center p-3 bg-pixel-dark border-4 border-pixel-yellow relative min-h-[260px]">
+                    <div class="absolute top-2 left-2 font-pixel text-[9px] bg-pixel-yellow text-pixel-dark px-1.5 py-0.5 rounded-none">
+                        DR. MAYA
+                    </div>
+                    <!-- Pixel Canvas Container -->
+                    <canvas id="doctorCanvas" width="128" height="160" class="w-36 h-48 md:w-44 md:h-56 mt-2"></canvas>
+                    <div id="expression-tag" class="mt-2 font-pixel text-[10px] text-pixel-pink tracking-widest uppercase">
+                        [ EXPRESSION: NEUTRAL ]
+                    </div>
+                </div>
+
+                <!-- Dialogue & Scenario Description Container -->
+                <div class="md:col-span-8 flex flex-col justify-between h-full bg-pixel-dark p-4 sm:p-5 border-4 border-pixel-border min-h-[260px]">
+                    <div id="scenario-box" class="space-y-3">
+                        <div class="flex justify-between items-center text-xs text-pixel-pink font-pixel border-b border-gray-700 pb-2">
+                            <span id="scenario-number">SCENARIO 1 OF 8</span>
+                            <span id="topic-tag" class="bg-purple-900 px-2 py-0.5 text-white">ACTIVE CONSENT</span>
+                        </div>
+                        <h2 id="scenario-title" class="font-pixel text-sm sm:text-base text-pixel-yellow leading-relaxed">
+                            Loading Scenario...
+                        </h2>
+                        <p id="scenario-desc" class="text-base sm:text-lg text-gray-200 leading-normal min-h-[80px]">
+                            Scenario description text will appear here with typewriter feel.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Options / Educational Feedback Container -->
+            <div id="interaction-area" class="space-y-4 pt-2">
+                <!-- Multiple Choice Options Grid -->
+                <div id="options-container" class="grid grid-cols-1 gap-3">
+                    <!-- Option Buttons Injected via JS -->
+                </div>
+
+                <!-- Educational Explanation Card (Shown after selection) -->
+                <div id="feedback-card" class="hidden p-4 border-4 border-pixel-yellow bg-pixel-dark space-y-3 animate-fade-in">
+                    <div class="flex items-center gap-2">
+                        <span id="feedback-icon" class="text-2xl">💡</span>
+                        <h3 id="feedback-title" class="font-pixel text-xs text-pixel-yellow">EDUCATIONAL INSIGHT</h3>
+                    </div>
+                    <p id="feedback-text" class="text-base text-gray-200 leading-relaxed"></p>
+                    <div class="flex justify-end pt-2">
+                        <button id="next-btn" onclick="nextScenario()" class="pixel-btn pixel-btn-green px-6 py-2.5">
+                            NEXT SCENARIO ➔
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Completion Certificate Screen (Hidden by default) -->
+        <div id="completion-screen" class="hidden w-full bg-pixel-card border-4 border-pixel-yellow p-6 sm:p-8 text-center space-y-6">
+            <div class="text-5xl animate-bounce">🎓</div>
+            <h2 class="font-pixel text-base sm:text-lg text-pixel-yellow">COURSE COMPLETE!</h2>
+            <p class="text-xl">You have successfully completed Dr. Maya's Educational Module on Consent, Boundaries & Safety.</p>
+            
+            <div class="max-w-md mx-auto bg-pixel-dark p-4 border-2 border-pixel-pink space-y-2 text-left font-retro text-lg">
+                <div class="flex justify-between text-pixel-yellow font-pixel text-xs">
+                    <span>SUMMARY REPORT</span>
+                    <span id="final-score-badge">0/8 Correct</span>
+                </div>
+                <p>✓ Active Consent Cues Mastered</p>
+                <p>✓ 5 Ds of Bystander Intervention Applied</p>
+                <p>✓ Digital Boundaries & Safety Understood</p>
+                <p>✓ Supportive Survivor Listening Practiced</p>
+            </div>
+
+            <div class="pt-4 flex flex-col sm:flex-row gap-4 justify-center">
+                <button onclick="restartGame()" class="pixel-btn px-6 py-3">
+                    🔄 REPLAY GAME
+                </button>
+                <button onclick="openHelplineModal()" class="pixel-btn pixel-btn-green px-6 py-3">
+                    🆘 VIEW HELPLINE DIRECTORY
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Documentation / GitHub Info -->
+    <footer class="w-full max-w-5xl mx-auto mt-4 text-center text-xs text-gray-400 font-retro z-10 flex flex-col sm:flex-row justify-between items-center gap-2 px-2">
+        <p>Built for open educational hosting on GitHub Pages • Trauma-Informed Framework</p>
+        <p>Aesthetic inspired by 16-bit retro graphics</p>
+    </footer>
+
+    <!-- JavaScript Engine -->
+    <script>
+        /* ==========================================================================
+           1. PIXEL ART CANVAS DRAWING ENGINE (DR. MAYA CHARACTER)
+           ========================================================================== */
+        const canvas = document.getElementById('doctorCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Color Palette matching the user's reference image
+        const PALETTE = {
+            hair: '#4ba44e',      // Green long hair
+            hairDark: '#296b34',  // Hair shadow
+            skin: '#af5832',      // Warm dark skin tone
+            skinDark: '#843a1c',  // Skin shadow
+            dress: '#f0c742',     // Yellow coat/dress
+            dressDark: '#c99b24', // Dress accent/shadow
+            blush: '#d64d50',     // Cheeks
+            white: '#ffffff',
+            dark: '#1a1024',      // Eyes/Outlines
+            mouth: '#63211c',
+            flower: '#e84e6a'     // Hair accessory
+        };
+
+        // Current expression state: 'NEUTRAL', 'HAPPY', 'THINKING', 'WELCOMING'
+        let currentExpression = 'WELCOMING';
+        let animationFrame = 0;
+
+        function drawPixel(x, y, color, size = 4) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * size, y * size, size, size);
+        }
+
+        function renderDoctor() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            animationFrame++;
+            const floatOffset = Math.sin(animationFrame * 0.08) > 0 ? 0 : 0; // Gentle frame idle
+
+            // Pixel grid scale: 32x40 pixels @ size 4 = 128x160 canvas
+            
+            // Background Hair (Back layer)
+            for(let x = 7; x <= 24; x++) {
+                for(let y = 10; y <= 32; y++) {
+                    if((x < 11 || x > 20) && y > 12) {
+                        drawPixel(x, y + floatOffset, PALETTE.hairDark);
+                    }
+                }
+            }
+
+            // Body / Yellow Coat
+            for(let y = 20; y <= 36; y++) {
+                const width = Math.min(14, (y - 18) * 1.2);
+                for(let x = 16 - width/2; x <= 16 + width/2; x++) {
+                    drawPixel(Math.floor(x), y, (x % 3 === 0) ? PALETTE.dressDark : PALETTE.dress);
+                }
+            }
+
+            // Neck
+            for(let x = 14; x <= 17; x++) {
+                for(let y = 17; y <= 19; y++) {
+                    drawPixel(x, y, PALETTE.skinDark);
+                }
+            }
+
+            // Head / Face Base
+            for(let x = 10; x <= 21; x++) {
+                for(let y = 8; y <= 18; y++) {
+                    // Rounded face corners
+                    if ((x===10 || x===21) && (y===8 || y===18)) continue;
+                    drawPixel(x, y, PALETTE.skin);
+                }
+            }
+
+            // Green Hair (Front & Bangs)
+            // Top hair volume
+            for(let x = 9; x <= 22; x++) {
+                for(let y = 4; y <= 9; y++) {
+                    if (y === 4 && (x < 12 || x > 19)) continue;
+                    drawPixel(x, y, PALETTE.hair);
+                }
+            }
+            // Side curls
+            for(let y = 9; y <= 26; y++) {
+                drawPixel(8, y, PALETTE.hair);
+                drawPixel(9, y, PALETTE.hair);
+                drawPixel(22, y, PALETTE.hair);
+                drawPixel(23, y, PALETTE.hair);
+            }
+            // Bangs detailing
+            drawPixel(12, 9, PALETTE.hairDark);
+            drawPixel(13, 10, PALETTE.hair);
+            drawPixel(18, 9, PALETTE.hairDark);
+            drawPixel(19, 10, PALETTE.hair);
+
+            // Hair Flower / Clip (Pink/Red accessory)
+            drawPixel(21, 6, PALETTE.flower);
+            drawPixel(22, 6, PALETTE.flower);
+            drawPixel(21, 7, PALETTE.flower);
+
+            // Eyes & Expressions Logic
+            drawPixel(11, 13, PALETTE.blush); // Left cheek
+            drawPixel(20, 13, PALETTE.blush); // Right cheek
+
+            if (currentExpression === 'HAPPY') {
+                // Happy Arc Eyes (^ ^)
+                drawPixel(12, 11, PALETTE.dark);
+                drawPixel(13, 10, PALETTE.dark);
+                drawPixel(14, 11, PALETTE.dark);
+
+                drawPixel(17, 11, PALETTE.dark);
+                drawPixel(18, 10, PALETTE.dark);
+                drawPixel(19, 11, PALETTE.dark);
+
+                // Big Smile
+                drawPixel(14, 15, PALETTE.dark);
+                drawPixel(15, 16, PALETTE.mouth);
+                drawPixel(16, 16, PALETTE.mouth);
+                drawPixel(17, 15, PALETTE.dark);
+
+            } else if (currentExpression === 'THINKING') {
+                // Concerned / Thinking Eyes
+                drawPixel(12, 11, PALETTE.dark);
+                drawPixel(13, 11, PALETTE.dark);
+
+                drawPixel(18, 10, PALETTE.dark);
+                drawPixel(19, 11, PALETTE.dark);
+
+                // Worried / Neutral Line Mouth
+                drawPixel(14, 15, PALETTE.dark);
+                drawPixel(15, 15, PALETTE.dark);
+                drawPixel(16, 15, PALETTE.dark);
+                drawPixel(17, 16, PALETTE.dark);
+
+            } else if (currentExpression === 'WELCOMING') {
+                // Open Warm Eyes
+                drawPixel(12, 11, PALETTE.dark);
+                drawPixel(13, 11, PALETTE.dark);
+                drawPixel(13, 12, PALETTE.dark);
+
+                drawPixel(18, 11, PALETTE.dark);
+                drawPixel(19, 11, PALETTE.dark);
+                drawPixel(18, 12, PALETTE.dark);
+
+                // Small Gentle Smile
+                drawPixel(14, 15, PALETTE.dark);
+                drawPixel(15, 15, PALETTE.dark);
+                drawPixel(16, 15, PALETTE.dark);
+
+            } else {
+                // NEUTRAL / TALKING
+                drawPixel(12, 11, PALETTE.dark);
+                drawPixel(13, 11, PALETTE.dark);
+
+                drawPixel(18, 11, PALETTE.dark);
+                drawPixel(19, 11, PALETTE.dark);
+
+                // Animated mouth if talking
+                if (Math.floor(animationFrame / 15) % 2 === 0) {
+                    drawPixel(14, 15, PALETTE.dark);
+                    drawPixel(15, 16, PALETTE.mouth);
+                    drawPixel(16, 15, PALETTE.dark);
+                } else {
+                    drawPixel(14, 15, PALETTE.dark);
+                    drawPixel(15, 15, PALETTE.dark);
+                    drawPixel(16, 15, PALETTE.dark);
+                }
+            }
+
+            requestAnimationFrame(renderDoctor);
+        }
+
+        function setDoctorExpression(expression) {
+            currentExpression = expression;
+            document.getElementById('expression-tag').innerText = `[ EXPRESSION: ${expression} ]`;
+        }
+
+        /* ==========================================================================
+           2. GAME CURRICULUM & SCENARIO DATA
+           ========================================================================== */
+        const scenarios = [
+            // MODULE 1: ACTIVE CONSENT
+            {
+                module: "MODULE 1: ACTIVE CONSENT",
+                title: "Understanding Enthusiastic Consent",
+                desc: "Your partner says 'I guess so...' in a quiet voice when asked if they want to go to an intimate event. How should you respond?",
+                options: [
+                    {
+                        text: "Assume 'yes' since they didn't explicitly say no.",
+                        correct: false,
+                        feedback: "Incorrect. Active consent requires clear, voluntary, and enthusiastic agreement. Hesitation or silence is not a green light."
+                    },
+                    {
+                        text: "Pause and gently check in: 'You sound hesitant. We don't have to go if you're not feeling it!'",
+                        correct: true,
+                        feedback: "Correct! Consent is an ongoing dialogue. Noticing non-verbal cues and offering a comfortable out ensures safety and respect."
+                    },
+                    {
+                        text: "Try to convince them by explaining how important the event is to you.",
+                        correct: false,
+                        feedback: "Incorrect. Persuading or pressuring someone undermines voluntary consent."
+                    }
+                ]
+            },
+            {
+                module: "MODULE 1: ACTIVE CONSENT",
+                title: "Ongoing & Revocable Consent",
+                desc: "You and a partner agreed to an activity earlier, but midway through, they become quiet and step back. What is the correct approach?",
+                options: [
+                    {
+                        text: "Stop immediately and ask how they are feeling.",
+                        correct: true,
+                        feedback: "Spot on! Consent is continuous and can be revoked at any time. Past consent does not equal permanent consent."
+                    },
+                    {
+                        text: "Continue because they already agreed at the beginning.",
+                        correct: false,
+                        feedback: "Incorrect. Consent can be withdrawn at any moment during an interaction."
+                    },
+                    {
+                        text: "Speed up so the activity finishes quickly.",
+                        correct: false,
+                        feedback: "Incorrect. Pushing forward when someone pulls away violates personal boundaries."
+                    }
+                ]
+            },
+
+            // MODULE 2: BYSTANDER INTERVENTION (5 Ds)
+            {
+                module: "MODULE 2: BYSTANDER INTERVENTION",
+                title: "The Distract Strategy",
+                desc: "At a party, you notice someone looking visibly uncomfortable while an acquaintance aggressively corners them in conversation. How can you use 'Distract'?",
+                options: [
+                    {
+                        text: "Spill a drink nearby or ask the uncomfortable person to help you find your lost keys in the kitchen.",
+                        correct: true,
+                        feedback: "Great job! 'Distract' interrupts the situation indirectly without escalating conflict, giving the person a safe exit."
+                    },
+                    {
+                        text: "Yell at the acquaintance from across the room immediately.",
+                        correct: false,
+                        feedback: "While direct intervention works, yelling can escalate tension unsafely. Distraction is often smoother and safer."
+                    },
+                    {
+                        text: "Ignore it because it's not your business.",
+                        correct: false,
+                        feedback: "Incorrect. Active bystanders play a critical role in preventing harm before it occurs."
+                    }
+                ]
+            },
+            {
+                module: "MODULE 2: BYSTANDER INTERVENTION",
+                title: "The Delegate & Direct Strategies",
+                desc: "You witness online harassment in a group chat where a member is receiving targeted derogatory spam. What is an effective response?",
+                options: [
+                    {
+                        text: "Private message the group administrator (Delegate) and directly state in the chat that harassment breaks guidelines (Direct).",
+                        correct: true,
+                        feedback: "Excellent! Combining 'Delegate' (getting authority/mods involved) and 'Direct' sets clear community boundaries."
+                    },
+                    {
+                        text: "Join in with jokes so you don't become the next target.",
+                        correct: false,
+                        feedback: "Incorrect. Complicity reinforces harmful environments."
+                    },
+                    {
+                        text: "Leave the group chat quietly without saving evidence.",
+                        correct: false,
+                        feedback: "Leaving protects yourself, but taking action like reporting or documenting supports the target."
+                    }
+                ]
+            },
+
+            // MODULE 3: DIGITAL BOUNDARIES & PRIVACY
+            {
+                module: "MODULE 3: DIGITAL BOUNDARIES",
+                title: "Non-Consensual Photo Sharing",
+                desc: "A friend forwards you a private, intimate photo of an acquaintance that was sent to them in confidence. What should you do?",
+                options: [
+                    {
+                        text: "Forward it to other friends to warn them.",
+                        correct: false,
+                        feedback: "Incorrect. Forwarding non-consensual images is a severe violation of privacy and legal consent."
+                    },
+                    {
+                        text: "Delete it immediately, tell the sender it's wrong to share private photos, and do not distribute it.",
+                        correct: true,
+                        feedback: "Correct! Stopping the chain of non-consensual image sharing protects victims and upholds digital safety."
+                    },
+                    {
+                        text: "Save it to your private cloud folder without sharing.",
+                        correct: false,
+                        feedback: "Incorrect. Keeping images shared without consent violates digital boundaries."
+                    }
+                ]
+            },
+            {
+                module: "MODULE 3: DIGITAL BOUNDARIES",
+                title: "Location Tracking & Digital Stalking",
+                desc: "An acquaintance insists you turn on 'Always-On Precise Location Sharing' on messaging apps so they know where you are at all times.",
+                options: [
+                    {
+                        text: "Politely decline, stating that location sharing is a personal digital boundary you reserve for safety/family only.",
+                        correct: true,
+                        feedback: "Correct! You own your digital footprint. Demanding continuous location tracking can be a warning sign of control."
+                    },
+                    {
+                        text: "Enable it to avoid making them angry.",
+                        correct: false,
+                        feedback: "Incorrect. Compromising your physical safety boundaries out of pressure is unsafe."
+                    }
+                ]
+            },
+
+            // MODULE 4: SUPPORTING A SURVIVOR
+            {
+                module: "MODULE 4: SUPPORTING SURVIVORS",
+                title: "Empathetic Listening",
+                desc: "A friend confides in you about an experience with boundary violation or harassment. What is the most supportive initial statement?",
+                options: [
+                    {
+                        text: "'Why didn't you leave or call for help immediately?'",
+                        correct: false,
+                        feedback: "Incorrect. Questioning a survivor's actions creates victim-blaming and increases trauma."
+                    },
+                    {
+                        text: "'I believe you, I'm so sorry that happened, and I'm here to support whatever you choose to do next.'",
+                        correct: true,
+                        feedback: "Perfect! Validating, believing, and empowering the individual reinstates control back to them."
+                    },
+                    {
+                        text: "'You should definitely report this to law enforcement right this second whether you want to or not.'",
+                        correct: false,
+                        feedback: "Incorrect. Forcing choices on a survivor removes their autonomy. Always empower them to make their own decisions."
+                    }
+                ]
+            },
+            {
+                module: "MODULE 4: SUPPORTING SURVIVORS",
+                title: "Resource Navigation",
+                desc: "Your friend asks for help finding professional guidance after an incident, but is scared of publicity. What should you suggest?",
+                options: [
+                    {
+                        text: "Post about the situation on public social media to get advice from peers.",
+                        correct: false,
+                        feedback: "Incorrect. Public posts compromise privacy and confidentiality."
+                    },
+                    {
+                        text: "Share confidential 24/7 helplines (like RAINN or local crisis lines) where they can speak anonymously to professionals.",
+                        correct: true,
+                        feedback: "Correct! Confidential helplines provide expert trauma-informed care while respecting survivor privacy."
+                    }
+                ]
+            }
+        ];
+
+        /* ==========================================================================
+           3. GAME LOGIC & STATE MANAGEMENT
+           ========================================================================== */
+        let currentScenarioIndex = 0;
+        let score = 0;
+        let answered = false;
+
+        function initGame() {
+            renderDoctor();
+            showScenario();
+        }
+
+        function showScenario() {
+            answered = false;
+            const data = scenarios[currentScenarioIndex];
+
+            // Reset UI
+            document.getElementById('module-title').innerText = data.module;
+            document.getElementById('scenario-number').innerText = `SCENARIO ${currentScenarioIndex + 1} OF ${scenarios.length}`;
+            document.getElementById('scenario-title').innerText = data.title;
+            document.getElementById('scenario-desc').innerText = data.desc;
+            document.getElementById('feedback-card').classList.add('hidden');
+
+            // Set neutral doctor expression
+            setDoctorExpression('NEUTRAL');
+
+            // Update Progress Bar
+            const progressPercent = ((currentScenarioIndex) / scenarios.length) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercent}%`;
+
+            // Render Options
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            data.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'pixel-btn text-left p-3.5 w-full leading-snug flex items-start gap-3';
+                btn.innerHTML = `<span class="bg-pixel-dark text-pixel-yellow px-2 py-0.5 border border-pixel-yellow font-pixel text-xs">${String.fromCharCode(65 + idx)}</span> <span>${opt.text}</span>`;
+                btn.onclick = () => selectOption(opt);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function selectOption(option) {
+            if (answered) return;
+            answered = true;
+
+            const feedbackCard = document.getElementById('feedback-card');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackText = document.getElementById('feedback-text');
+
+            feedbackCard.classList.remove('hidden');
+
+            // Disable option buttons
+            const buttons = document.querySelectorAll('#options-container button');
+            buttons.forEach(b => b.classList.add('opacity-50', 'pointer-events-none'));
+
+            if (option.correct) {
+                score += 100;
+                document.getElementById('score-display').innerText = `${score} PTS`;
+                setDoctorExpression('HAPPY');
+                
+                feedbackCard.className = "p-4 border-4 border-pixel-green bg-pixel-dark space-y-2";
+                feedbackIcon.innerText = "✅";
+                feedbackTitle.innerText = "EXCELLENT CHOICE!";
+                feedbackTitle.className = "font-pixel text-xs text-pixel-green";
+            } else {
+                setDoctorExpression('THINKING');
+                
+                feedbackCard.className = "p-4 border-4 border-pixel-red bg-pixel-dark space-y-2";
+                feedbackIcon.innerText = "💡";
+                feedbackTitle.innerText = "LEARNING OPPORTUNITY";
+                feedbackTitle.className = "font-pixel text-xs text-pixel-red";
+            }
+
+            feedbackText.innerText = option.feedback;
+        }
+
+        function nextScenario() {
+            currentScenarioIndex++;
+            if (currentScenarioIndex < scenarios.length) {
+                showScenario();
+            } else {
+                showCompletionScreen();
+            }
+        }
+
+        function showCompletionScreen() {
+            document.getElementById('progress-bar').style.width = `100%`;
+            document.querySelector('.grid').classList.add('hidden');
+            document.getElementById('interaction-area').classList.add('hidden');
+            
+            const completionScreen = document.getElementById('completion-screen');
+            completionScreen.classList.remove('hidden');
+            
+            const correctCount = score / 100;
+            document.getElementById('final-score-badge').innerText = `${correctCount}/${scenarios.length} Correct (${score} PTS)`;
+            
+            setDoctorExpression('WELCOMING');
+        }
+
+        function restartGame() {
+            currentScenarioIndex = 0;
+            score = 0;
+            document.getElementById('score-display').innerText = `0 PTS`;
+            document.querySelector('.grid').classList.remove('hidden');
+            document.getElementById('interaction-area').classList.remove('hidden');
+            document.getElementById('completion-screen').classList.add('hidden');
+            showScenario();
+        }
+
+        /* ==========================================================================
+           4. MODALS & UTILITY FUNCTIONS
+           ========================================================================== */
+        function acceptWarning() {
+            document.getElementById('warning-modal').classList.add('hidden');
+        }
+
+        function openHelplineModal() {
+            document.getElementById('helpline-modal').classList.remove('hidden');
+        }
+
+        function closeHelplineModal() {
+            document.getElementById('helpline-modal').classList.add('hidden');
+        }
+
+        function toggleScanlines() {
+            const scanlines = document.getElementById('scanlines');
+            scanlines.style.display = scanlines.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Initialize on Load
+        window.onload = function() {
+            initGame();
+        };
+    </script>
+</body>
+</html>
